@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
 from flask import Flask, jsonify
 import datetime as dt 
-from sqlalchemy import distinct
-#################################################
+
+#=======================================================================================================================================
 # Database Setup
-#################################################
+#=======================================================================================================================================
 engine = create_engine("sqlite:///Resources/hawaii.sqlite")
 # reflect an existing database into a new model
 Base = automap_base()
@@ -19,13 +19,17 @@ Measurement = Base.classes.measurement
 Station = Base.classes.station
 
 session = Session(engine)
-#################################################
+#========================================================================================================================================
 # Flask Setup
-#################################################
+#========================================================================================================================================
 app = Flask(__name__)
-# #################################################
+#========================================================================================================================================
 # # Flask Routes
-# #################################################
+#========================================================================================================================================
+#
+#
+#
+#=============================================== home ===================================================================================
 @app.route("/")
 def home():
     """List all available api routes."""
@@ -34,10 +38,11 @@ def home():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/<start> (Start Date ~ Enter as YYYY-MM-DD)<br/>"
-        f"/api/v1.0/<start>/<end> (Start/End Date ~ Enter as YYYY-MM-DD)"
+        f"/api/v1.0/<start> [Enter Start Date YYYY-MM-DD]<br/>"
+        f"/api/v1.0/<start>/<end> [Enter Start/End Date YYYY-MM-DD]"
     )
 @app.route("/api/v1.0/precipitation")
+#=============================================== precipitation ==========================================================================
 def precipitation():
     # Create our session (link) from Python to the DB
     session = Session(engine)
@@ -60,6 +65,7 @@ def precipitation():
         precipitation_dict["precipitation"] = prcp        
         all_prcp.append(precipitation_dict)
     return jsonify(all_prcp)
+#=============================================== stations ===============================================================================
 @app.route("/api/v1.0/stations")
 def stations():
     # Create our session (link) from Python to the DB
@@ -73,6 +79,7 @@ def stations():
     # Return jason list
     unique_stations = list(np.ravel(results))
     return jsonify(unique_stations)
+#=============================================== tobs ===================================================================================
 @app.route("/api/v1.0/tobs")
 def tobs():
     # Create our session (link) from Python to the DB
@@ -99,14 +106,30 @@ def tobs():
         tobs_dict["tobs"] = tobs
         all_tobs.append(tobs_dict)
     return jsonify(all_tobs)
+#=============================================== start date  ============================================================================
 @app.route("/api/v1.0/<start>")
 def startdate(start):
     # Create our session (link) from Python to the DB
     session = Session(engine)
-    """Return Min, Max, and Avg of  temperature"""
-    # Query all stations
+    """Return Min, Max, and Avg of temperature from specify start date"""
+    # Query min, max, avg from start date
     results = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.round(func.avg(Measurement.tobs),2)).\
                    filter(Measurement.date >= start).all()
+           
+    session.close()
+    
+    start_date = list(np.ravel(results))
+    return jsonify(start_date)
+#=============================================== start/end date =========================================================================
+@app.route("/api/v1.0/<start>/<end>")
+def range(start, end):
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+    """Return Min, Max, and Avg of  temperature from specify start and end date"""
+     # Query min, max, avg from start & end date
+    results = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.round(func.avg(Measurement.tobs),2)).\
+                   filter(Measurement.date >= start).\
+                   filter(Measurement.date <= end).all()
            
     #results = session.query(func.count(distinct(Measurement.station))).all()
     session.close()
@@ -119,7 +142,3 @@ def startdate(start):
 if __name__ == '__main__':
     app.run(debug=True)
 
-# /api/v1.0/<start> and /api/v1.0/<start>/<end>
-# Return a JSON list of the minimum temperature, the average temperature, and the max temperature for a given start or start-end range.
-# When given the start only, calculate TMIN, TAVG, and TMAX for all dates greater than and equal to the start date.
-# When given the start and the end date, calculate the TMIN, TAVG, and TMAX for dates between the start and end date inclusive.
